@@ -11,4 +11,13 @@ class Transaction {
     required this.value,
     required this.date
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      "id": id,
+      "title": title,
+      "value": value,
+      "date": date.toString()
+    };
+  }
 }

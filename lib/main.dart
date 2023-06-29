@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:untitled1/components/chart.dart';
 import 'package:untitled1/components/transaction_form.dart';
 import 'package:untitled1/components/transaction_list.dart';
+import 'package:untitled1/database/databasehelper.dart';
 import 'package:untitled1/models/transaction.dart';
-
+import 'package:get_it/get_it.dart';
+import 'package:untitled1/repository/transaction_repository.dart';
 //main() => runApp(ExpensesApp());
 
 void main() {
@@ -15,9 +17,13 @@ void main() {
     statusBarColor: Colors.transparent,
     systemNavigationBarColor: Colors.pink
   ));
+  setupDependencyInjection();
   runApp(ExpensesApp());
 }
 
+void setupDependencyInjection() {
+  GetIt.I.registerSingleton<DatabaseHelper>(DatabaseHelper());
+}
 
 class ExpensesApp extends StatelessWidget {
   @override
@@ -48,6 +54,34 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Transaction> _transactions = [];
   bool _showChart = false;
 
+  late TransactionRepository repo;
+
+  @override
+  void initState() {
+    super.initState();
+    final DatabaseHelper databaseHelper = GetIt.I<DatabaseHelper>();
+    repo = TransactionRepository(databaseHelper);
+    loadTransactions();
+  }
+
+  void loadTransactions() async {
+    List<Map<String, dynamic>> transactionMaps = await repo.getAllItems();
+    List<Transaction> transactions = transactionMaps.map((tr) {
+      return Transaction(
+        id: tr['id'],
+        title: tr['title'],
+        value: tr['value'],
+        date: DateTime.parse(tr['date'])
+      );
+    }).toList();
+
+    setState(() {
+      _transactions.clear();
+      _transactions.addAll(transactions);
+    });
+  }
+
+
   List<Transaction> get _recentTransaction {
     return _transactions.where((tr) {
       return tr.date.isAfter(DateTime.now().subtract(const Duration(days: 7)));
@@ -56,30 +90,41 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _addTransaction(String title, double value, DateTime date) {
     final newTransaction = Transaction(
-        id: Random().nextDouble().toString(),
-        title: title,
-        value: value,
-        date: date);
+      id: Random().nextDouble().toString(),
+      title: title,
+      value: value,
+      date: date
+    );
 
-    setState(() {
-      _transactions.add(newTransaction);
-    });
+    // setState(() {
+    //   _transactions.add(newTransaction);
+    // });
+
+
+    repo.insertTransaction(newTransaction.toMap());
+    loadTransactions();
+    
 
     Navigator.of(context).pop();
   }
 
   _removeTransaction(String id) {
-    setState(() {
-      _transactions.removeWhere((tr) => tr.id == id);
-    });
+    // setState(() {
+    //   _transactions.removeWhere((tr) => tr.id == id);
+    // });
+
+    repo.deleteTransaction(id);
+    loadTransactions();
+
   }
 
   _openTransactionFormModal(BuildContext context) {
     showModalBottomSheet(
-        context: context,
-        builder: (_) {
-          return TransactionForm(_addTransaction);
-        });
+      context: context,
+      builder: (_) {
+        return TransactionForm(_addTransaction);
+      }
+    );
   }
 
   @override
