@@ -96,26 +96,20 @@ class _MyHomePageState extends State<MyHomePage> {
       date: date
     );
 
-    // setState(() {
-    //   _transactions.add(newTransaction);
-    // });
-
-
     repo.insertTransaction(newTransaction.toMap());
-    loadTransactions();
+    setState(() {
+      _transactions.add(newTransaction);
+    });
     
 
     Navigator.of(context).pop();
   }
 
   _removeTransaction(String id) {
-    // setState(() {
-    //   _transactions.removeWhere((tr) => tr.id == id);
-    // });
-
     repo.deleteTransaction(id);
-    loadTransactions();
-
+    setState(() {
+      _transactions.removeWhere((tr) => tr.id == id);
+    });
   }
 
   _openTransactionFormModal(BuildContext context) {
